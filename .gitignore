@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Config (user-specific)
+config.json
+
+# Runtime data
+data/
+
+# OS files
+.DS_Store
+
+# Editor
+.vscode/
+*.swp
+*.swo

@@ -1,0 +1,28 @@
+{
+  "name": "macos-ssd-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for AI-assisted disk cleanup on macOS",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "npx tsx src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "delete": "./scripts/delete-staged.sh"
+  },
+  "keywords": [
+    "mcp",
+    "macos",
+    "disk-cleanup",
+    "ai"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
