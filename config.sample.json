@@ -1,0 +1,23 @@
+{
+  "protected_paths": [
+    "/System",
+    "/Applications",
+    "~/.ssh",
+    "~/.gnupg",
+    "~/Documents",
+    "~/Desktop",
+    "~/.zshrc",
+    "~/.config"
+  ],
+  "scan_locations": [
+    "~",
+    "/Library",
+    "/opt",
+    "/usr/local"
+  ],
+  "ignore_patterns": [
+    ".git"
+  ],
+  "max_delete_size_gb": 10,
+  "dry_run": false
+}
