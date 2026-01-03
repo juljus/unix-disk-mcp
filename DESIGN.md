@@ -196,7 +196,7 @@ If `config.json` doesn't exist, the server refuses to start and instructs the us
 
 ## Data Storage
 
-Location: `~/.macos-ssd-mcp/`
+Location: `./data/` (in project folder)
 
 - `staged.json` - Current staged deletion list
 - `history.json` - Log of past deletions
@@ -208,11 +208,83 @@ Location: `~/.macos-ssd-mcp/`
 - **Language:** TypeScript
 - **MCP SDK:** @modelcontextprotocol/sdk
 - **Runtime:** Node.js
+- **Delete script:** Bash (simple, transparent, no build step)
+
+---
+
+## Project Structure
+
+```
+macos-ssd-mcp/
+├── src/
+│   ├── index.ts              # Entry point
+│   ├── server.ts             # MCP server setup, tool registration
+│   ├── config/
+│   │   └── index.ts          # Config loading & validation
+│   ├── tools/
+│   │   ├── exploration.ts    # list_directory, get_disk_usage, find_large_items, get_item_info
+│   │   ├── discovery.ts      # list_applications, list_homebrew, list_docker
+│   │   └── staging.ts        # stage_for_deletion, unstage, get_staged
+│   └── utils/
+│       └── fs.ts             # Shared filesystem helpers
+├── scripts/
+│   └── delete-staged.sh      # Manual deletion script (NOT an MCP tool)
+├── data/
+│   ├── staged.json           # Staged items (gitignored)
+│   └── history.json          # Deletion history (gitignored)
+├── config.sample.json        # Example config (tracked)
+├── config.json               # User config (gitignored)
+├── package.json
+├── tsconfig.json
+└── README.md
+```
+
+## Error Handling
+
+Errors are returned as tool results so the AI can see and react to them:
+
+```typescript
+// Example tool response on error
+{
+  "success": false,
+  "error": "Path not found: /Users/foo/bar",
+  "code": "PATH_NOT_FOUND"
+}
+
+// Example tool response on success
+{
+  "success": true,
+  "data": { ... }
+}
+```
+
+The AI sees errors and can:
+- Try a different path
+- Inform the user
+- Adjust its approach
+
+## Running the Server
+
+**Development:**
+```bash
+npm run dev
+# runs: npx ts-node src/index.ts
+```
+
+**Production:**
+```bash
+npm run build   # compiles to dist/
+npm start       # runs: node dist/index.js
+```
+
+**Future (npm publish):**
+```bash
+npx macos-ssd-mcp
+```
 
 ---
 
 ## Open Questions
 
 - [ ] What other discovery tools might be useful? (VMs, iOS backups, etc.)
-- [ ] Should staged items include the AI's reasoning for why they're suggested?
 - [ ] Expiry on staged items? (Auto-unstage after X days if not deleted)
