@@ -43,7 +43,7 @@ List contents of a directory.
 - **Output:** Array of items, each with:
   - `name`
   - `type` ("file" | "directory")
-  - `size` (bytes, for files only — folder sizes are expensive)
+  - `size` (bytes, for files only — directory sizes are expensive)
   - `modified` (ISO timestamp)
   - `accessed` (ISO timestamp, may be unreliable)
 
@@ -54,10 +54,10 @@ Overview of disk space.
   - `total` (bytes)
   - `used` (bytes)
   - `available` (bytes)
-  - `breakdown` - array of top-level folders in home dir with sizes
+  - `breakdown` - array of top-level directories in home dir with sizes
 
 #### `find_large_items`
-Find files/folders above a size threshold.
+Find files/directories above a size threshold.
 - **Input:** `path`, `min_size_mb`, `max_results` (optional, default 20)
 - **Output:** Array of items sorted by size descending, each with path and size
 
@@ -102,7 +102,7 @@ List Docker resources (if Docker is installed/running).
 Add a path to the staged deletion list.
 - **Input:** `path`, `reason` (optional, AI's explanation)
 - **Output:** Confirmation with updated staged count
-- **Behavior:** Refuses if path is in `protected_paths`
+- **Behavior:** Refuses if path matches or is inside any `protected_paths` entry
 
 #### `unstage`
 Remove a path from the staged list.
@@ -134,9 +134,9 @@ npm run delete
 This script:
 1. Reads the staged list
 2. Shows what will be deleted with total size
-3. Asks for confirmation
-4. Moves items to Trash (or permanently deletes, based on config)
-5. Logs what was deleted
+3. Asks for single [y/N] confirmation
+4. Moves items to Trash
+5. Logs results (success and any errors) for AI to see on next run
 
 ---
 
@@ -171,22 +171,17 @@ Two files:
     ".git"
   ],
   
-  "require_confirmation": true,
-  
   "max_delete_size_gb": 10,
-  
-  "use_trash": true,
   
   "dry_run": false
 }
 ```
 
 ### Config Behavior
-- `protected_paths` - AI cannot stage these for deletion (blacklist approach)
+- `protected_paths` - AI cannot stage these or anything inside them (recursive, `~` expands to home directory)
 - `scan_locations` - Where the AI is encouraged to look
 - `ignore_patterns` - Patterns to skip during exploration
 - `max_delete_size_gb` - Safety limit for single deletion batch
-- `use_trash` - Move to Trash instead of permanent delete
 - `dry_run` - When true, delete script only reports what *would* happen
 
 ### First Run
