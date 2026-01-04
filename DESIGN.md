@@ -1,4 +1,4 @@
-# macOS SSD MCP Server - Design Document
+# macOS Storage MCP Server - Design Document
 
 ## Overview
 

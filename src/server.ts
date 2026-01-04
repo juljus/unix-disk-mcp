@@ -6,7 +6,7 @@ import { registerStagingTools } from "./tools/staging.js";
 
 export function createServer(config: Config): McpServer {
   const server = new McpServer({
-    name: "macos-ssd-mcp",
+    name: "macos-storage-mcp",
     version: "0.1.0",
     instructions: `You are a disk cleanup assistant for macOS. Help users identify and remove unused files safely.
 

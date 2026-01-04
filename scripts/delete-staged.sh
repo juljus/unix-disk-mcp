@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# macOS SSD MCP - Delete Staged Items
+# macOS Storage MCP - Delete Staged Items
 # This script is intentionally separate from the MCP server.
 # The AI cannot execute this - only the user can.
 

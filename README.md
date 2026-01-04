@@ -1,4 +1,4 @@
-# macOS SSD MCP
+# macOS Storage MCP
 
 An MCP server that gives AI agents exploratory access to your macOS filesystem to identify unused files, forgotten applications, and space-consuming cruft. The AI suggests what to delete, but **cannot delete anything itself** — deletion is always a manual user action.
 
@@ -38,7 +38,7 @@ Deletion happens via a separate bash script that you run manually: `./scripts/de
 1. **Clone and install:**
    ```bash
    git clone <repository-url>
-   cd macos-ssd-mcp
+   cd macos-storage-mcp
    npm install
    ```
 

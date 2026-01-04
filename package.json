@@ -1,5 +1,5 @@
 {
-  "name": "macos-ssd-mcp",
+  "name": "macos-storage-mcp",
   "version": "0.1.0",
   "description": "MCP server for AI-assisted disk cleanup on macOS",
   "type": "module",

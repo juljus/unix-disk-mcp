@@ -1,4 +1,4 @@
-# macOS SSD MCP - AI Agent Rules
+# macOS Storage MCP - AI Agent Rules
 
 ## Project Context
 
