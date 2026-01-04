@@ -90,12 +90,12 @@ unix-disk-mcp delete
 
 ## Tools Available to AI
 
-**Exploration (recommended order):**
-1. `get_disk_usage` - **Start here:** Overview of all filesystems and home directory breakdown
-2. `search_files` - Find files/directories by name pattern (uses Spotlight on macOS, find on Linux)
-3. `find_large_items` - Find big files/folders above size threshold (supports progressive depth exploration)
-4. `list_directory` - Browse specific folder contents
-5. `get_item_info` - Get detailed info on specific paths
+**Exploration:**
+- `list_directory` - Browse folders
+- `get_disk_usage` - Disk space overview
+- `find_large_items` - Find big files/folders (supports progressive depth exploration)
+- `get_item_info` - Details on specific paths
+- `search_files` - Find files/directories by name pattern
 
 **Discovery:**
 - `list_applications` - Installed apps with last-opened dates (macOS only)
