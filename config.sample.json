@@ -4,9 +4,5 @@
     "/Library",
     "~/.ssh",
     "~/.gnupg"
-  ],
-  "ignore_patterns": [
-    ".git"
-  ],
-  "dry_run": false
+  ]
 }

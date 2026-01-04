@@ -5,8 +5,6 @@ import { fileURLToPath } from "url";
 
 export interface Config {
   protected_paths: string[];
-  ignore_patterns: string[];
-  dry_run: boolean;
 }
 
 // Get __dirname equivalent in ES modules

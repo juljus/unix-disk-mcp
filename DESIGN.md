@@ -158,28 +158,12 @@ Two files:
     "~/Documents",
     "~/.zshrc",
     "~/.config"
-  ],
-  
-  "scan_locations": [
-    "~",
-    "/Library",
-    "/opt",
-    "/usr/local"
-  ],
-  
-  "ignore_patterns": [
-    ".git"
-  ],
-  
-  "dry_run": false
+  ]
 }
 ```
 
 ### Config Behavior
 - `protected_paths` - AI cannot stage these or anything inside them (recursive, `~` expands to home directory)
-- `scan_locations` - Where the AI is encouraged to look
-- `ignore_patterns` - Patterns to skip during exploration
-- `dry_run` - When true, delete script only reports what *would* happen
 
 ### First Run
 On first run, if config doesn't exist, it's automatically created from `config.sample.json` at `~/.config/macos-storage-mcp/config.json`. User can also run `macos-storage-mcp setup` for interactive configuration.

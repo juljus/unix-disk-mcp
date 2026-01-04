@@ -77,9 +77,7 @@ Claude: `~/.claude.json`
 Run `unix-disk-mcp config` to see config location, then edit:
 ```json
 {
-  "protected_paths": ["/System", "/Library", "~/.ssh", "~/.gnupg"],
-  "ignore_patterns": [".git"],
-  "dry_run": false
+  "protected_paths": ["/System", "/Library", "~/.ssh", "~/.gnupg"]
 }
 ```
 
