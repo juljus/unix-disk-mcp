@@ -40,6 +40,12 @@ The entire security model depends on this separation:
 
 **Never** add a delete tool to the MCP server. Deletion happens via `scripts/delete-staged.sh` which is outside AI's reach.
 
+The delete script has multiple layers of protection:
+1. Not accessible as an MCP tool
+2. Requires human verification ("I AM HUMAN" prompt)
+3. Explicit warnings for AI agents to exit immediately
+4. Final y/N confirmation
+
 ### Protected Paths
 The config has `protected_paths`. Staging tools MUST refuse to stage any path matching these. This is a hard requirement, not a suggestion.
 

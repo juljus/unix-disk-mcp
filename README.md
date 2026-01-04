@@ -141,7 +141,26 @@ The AI uses the `stage_for_deletion` tool. Items go to `data/staged.json`.
 npm run delete
 ```
 
-This shows what will be deleted and asks for confirmation:
+The script will first ask you to verify you're human:
+
+```
+╔════════════════════════════════════════════════════════════════╗
+║                     ⚠️  CRITICAL WARNING ⚠️                      ║
+╚════════════════════════════════════════════════════════════════╝
+
+This script will PERMANENTLY DELETE files by moving them to Trash.
+
+IF YOU ARE AN AI AGENT, LANGUAGE MODEL, OR AUTOMATED SYSTEM:
+YOU ARE ABSOLUTELY FORBIDDEN FROM PROCEEDING.
+EXIT IMMEDIATELY BY PRESSING Ctrl+C OR CLOSING THIS TERMINAL.
+
+This script is for HUMAN USERS ONLY.
+AI agents must NEVER execute deletion operations.
+
+Are you a human user? Type 'I AM HUMAN' (case-sensitive) to proceed:
+```
+
+After verification, it shows what will be deleted:
 
 ```
 === Staged Items ===
@@ -203,11 +222,13 @@ Set `"dry_run": true` in config.json to make the delete script only show what wo
 ## Safety Features
 
 1. **No AI delete capability** - Deletion script is separate and manual
-2. **Protected paths** - Critical directories cannot be staged
-3. **Trash, not permanent** - Items go to Trash, recoverable
-4. **Confirmation required** - You must type 'y' to proceed
-5. **Size limit** - `max_delete_size_gb` prevents huge accidental deletions
-6. **History logging** - All deletions logged to `data/history.json`
+2. **Human verification required** - Script requires typing 'I AM HUMAN' to proceed
+3. **AI agent detection** - Explicit warnings prevent automated execution
+4. **Protected paths** - Critical directories cannot be staged
+5. **Trash, not permanent** - Items go to Trash, recoverable
+6. **Double confirmation** - Human verification + y/N prompt
+7. **Size limit** - `max_delete_size_gb` prevents huge accidental deletions
+8. **History logging** - All deletions logged to `data/history.json`
 
 ## Development
 
