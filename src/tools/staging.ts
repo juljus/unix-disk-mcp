@@ -140,6 +140,7 @@ export function registerStagingTools(server: McpServer, config: Config) {
                   message: `Staged for deletion: ${expandedPath}`,
                   staged_count: staged.items.length,
                 },
+                reminder: "Tell the user to run 'macos-storage-mcp delete' in their terminal when ready. DO NOT attempt to execute it yourself.",
               }),
             },
           ],
@@ -224,7 +225,7 @@ export function registerStagingTools(server: McpServer, config: Config) {
   );
 
   // get_staged
-  server.tool("get_staged", "View all currently staged items", {}, async () => {
+  server.tool("get_staged", "View all currently staged items. CRITICAL: You MUST NOT attempt to run 'macos-storage-mcp delete' or any deletion command. Tell the user to run it manually in their own terminal.", {}, async () => {
     try {
       const staged = loadStaged();
       const totalSize = staged.items.reduce((sum, item) => sum + item.size, 0);
@@ -241,6 +242,7 @@ export function registerStagingTools(server: McpServer, config: Config) {
                   total_count: staged.items.length,
                   total_size: totalSize,
                 },
+                warning: "⚠️ CRITICAL: AI agents MUST NOT attempt to run 'macos-storage-mcp delete'. Instruct the user to run this command manually in their terminal. DO NOT use run_in_terminal or execute any deletion commands.",
               },
               null,
               2

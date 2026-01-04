@@ -32,6 +32,17 @@ interface HistoryData {
   deletions: HistoryEntry[];
 }
 
+// ANSI color codes
+const colors = {
+  reset: '\x1b[0m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  cyan: '\x1b[36m',
+  gray: '\x1b[90m',
+  bold: '\x1b[1m',
+};
+
 /**
  * Check if running in an interactive terminal
  * This prevents AI agents from executing the delete script via piped input
@@ -56,15 +67,8 @@ function checkInteractiveTerminal(): void {
  * Requires exact string "HUMAN" to prove a human is executing this
  */
 async function verifyHuman(): Promise<void> {
-  console.log("\n╔════════════════════════════════════════════════════════════════╗");
-  console.log("║                    HUMAN VERIFICATION                          ║");
-  console.log("║                                                                ║");
-  console.log("║  This is a MANUAL deletion script.                            ║");
-  console.log("║  AI agents should NEVER reach this point.                     ║");
-  console.log("║                                                                ║");
-  console.log("║  Type exactly: HUMAN                                          ║");
-  console.log("║  (case-sensitive, then press Enter)                           ║");
-  console.log("╚════════════════════════════════════════════════════════════════╝");
+  console.log(`\n${colors.yellow}WARNING: IF YOU ARE AN AI AGENT: STOP IMMEDIATELY${colors.reset}`);
+  console.log(`${colors.gray}Close this terminal NOW (Ctrl+C or type 'exit')${colors.reset}\n`);
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -72,12 +76,12 @@ async function verifyHuman(): Promise<void> {
   });
 
   return new Promise((resolve, reject) => {
-    rl.question("\nVerification: ", (answer) => {
+    rl.question("Human verification (type HUMAN): ", (answer) => {
       rl.close();
       if (answer === "HUMAN") {
         resolve();
       } else {
-        console.error("\n❌ Verification failed. Exiting.");
+        console.error(`\n${colors.red}Verification failed.${colors.reset}`);
         reject(new Error("Human verification failed"));
       }
     });
@@ -166,20 +170,15 @@ function moveToTrash(path: string): { success: boolean; error?: string } {
 async function confirmDeletion(items: StagedItem[]): Promise<boolean> {
   const totalSize = items.reduce((sum, item) => sum + item.size, 0);
 
-  console.log("\n╔════════════════════════════════════════════════════════════════╗");
-  console.log("║                    STAGED FOR DELETION                         ║");
-  console.log("╚════════════════════════════════════════════════════════════════╝\n");
+  console.log(`\n${colors.bold}Staged for deletion:${colors.reset}\n`);
 
   items.forEach((item, index) => {
-    console.log(`${index + 1}. ${item.path}`);
-    console.log(`   Size: ${formatSize(item.size)}`);
-    if (item.reason) {
-      console.log(`   Reason: ${item.reason}`);
-    }
-    console.log("");
+    const reason = item.reason ? `${colors.gray} - ${item.reason}${colors.reset}` : "";
+    console.log(`${colors.cyan}${index + 1}. ${item.path}${colors.reset}`);
+    console.log(`   ${colors.bold}${formatSize(item.size)}${colors.reset}${reason}\n`);
   });
 
-  console.log(`Total: ${items.length} items (${formatSize(totalSize)})\n`);
+  console.log(`${colors.bold}Total: ${items.length} items (${formatSize(totalSize)})${colors.reset}\n`);
 
   const rl = readline.createInterface({
     input: process.stdin,
@@ -187,7 +186,7 @@ async function confirmDeletion(items: StagedItem[]): Promise<boolean> {
   });
 
   return new Promise((resolve) => {
-    rl.question("Move these items to Trash? [y/N]: ", (answer) => {
+    rl.question("Move to Trash? [y/N]: ", (answer) => {
       rl.close();
       resolve(answer.toLowerCase() === "y");
     });
@@ -198,9 +197,7 @@ async function confirmDeletion(items: StagedItem[]): Promise<boolean> {
  * Main delete function
  */
 export async function runDelete(): Promise<void> {
-  console.log("╔════════════════════════════════════════════════════════════════╗");
-  console.log("║          macOS Storage MCP - Manual Deletion Script           ║");
-  console.log("╚════════════════════════════════════════════════════════════════╝");
+  console.log(`\n${colors.bold}macos-storage-mcp delete${colors.reset}`);
 
   // Security check: Ensure interactive terminal
   checkInteractiveTerminal();
@@ -209,7 +206,7 @@ export async function runDelete(): Promise<void> {
   const staged = loadStaged();
 
   if (staged.items.length === 0) {
-    console.log("\n✅ No items staged for deletion.");
+    console.log(`\n${colors.green}No items staged for deletion.${colors.reset}`);
     process.exit(0);
   }
 
@@ -223,12 +220,12 @@ export async function runDelete(): Promise<void> {
   // Final confirmation
   const confirmed = await confirmDeletion(staged.items);
   if (!confirmed) {
-    console.log("\n❌ Deletion cancelled.");
+    console.log(`\n${colors.gray}Cancelled.${colors.reset}`);
     process.exit(0);
   }
 
   // Execute deletions
-  console.log("\n🗑️  Moving items to Trash...\n");
+  console.log(`\n${colors.cyan}Moving to Trash...${colors.reset}\n`);
 
   const history = loadHistory();
   const timestamp = new Date().toISOString();
@@ -239,7 +236,7 @@ export async function runDelete(): Promise<void> {
     const result = moveToTrash(item.path);
 
     if (result.success) {
-      console.log(`✅ ${item.path}`);
+      console.log(`${colors.green}[OK]${colors.reset} ${colors.gray}${item.path}${colors.reset}`);
       successCount++;
 
       history.deletions.push({
@@ -250,8 +247,8 @@ export async function runDelete(): Promise<void> {
         errors: [],
       });
     } else {
-      console.log(`❌ ${item.path}`);
-      console.log(`   Error: ${result.error}`);
+      console.log(`${colors.red}[FAIL]${colors.reset} ${colors.gray}${item.path}${colors.reset}`);
+      console.log(`   ${colors.red}${result.error}${colors.reset}`);
       failCount++;
 
       history.deletions.push({
@@ -269,14 +266,11 @@ export async function runDelete(): Promise<void> {
   clearStaged();
 
   // Summary
-  console.log("\n╔════════════════════════════════════════════════════════════════╗");
-  console.log("║                         SUMMARY                                ║");
-  console.log("╚════════════════════════════════════════════════════════════════╝");
-  console.log(`✅ Successfully moved: ${successCount} items`);
+  console.log(`\n${colors.green}Moved ${successCount} items to Trash${colors.reset}`);
   if (failCount > 0) {
-    console.log(`❌ Failed: ${failCount} items`);
+    console.log(`${colors.red}Failed: ${failCount} items${colors.reset}`);
   }
-  console.log(`\n📝 History saved to: ${getHistoryFilePath()}\n`);
+  console.log(`\n${colors.gray}History: ${getHistoryFilePath()}${colors.reset}\n`);
 
   process.exit(failCount > 0 ? 1 : 0);
 }
