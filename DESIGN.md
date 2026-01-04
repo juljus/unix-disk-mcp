@@ -74,22 +74,26 @@ Detailed info about a single path.
 ### Specialized Discovery
 
 #### `list_applications`
-List installed applications with usage info (uses Spotlight).
+List installed applications with usage info.
 - **Input:** None
 - **Output:** Array of apps, each with:
   - `name`
   - `path`
   - `size` (bytes)
-  - `last_opened` (ISO timestamp, may be null)
+  - `last_opened` (ISO timestamp, may be null; only available on macOS)
+- **Behavior:** 
+  - macOS: Uses Spotlight to find .app bundles with last opened dates
+  - Linux: Parses .desktop files from standard locations (last_opened always null)
 
-#### `list_homebrew`
-List Homebrew packages (if Homebrew is installed).
-- **Input:** `include_casks` (optional, default true)
+#### `list_packages`
+List installed packages from available package managers.
+- **Input:** `include_casks` (optional, default true) - Include Homebrew casks on macOS
 - **Output:** Array of packages, each with:
   - `name`
-  - `type` ("formula" | "cask")
+  - `type` ("formula" | "cask" | "package")
   - `version`
-  - `installed_size` (bytes, if available)
+  - `source` ("homebrew" | "apt" | "dnf" | "yum" | "pacman")
+- **Behavior:** Tries Homebrew first, then falls back to system package manager (apt, dnf, yum, pacman)
 
 #### `list_docker`
 List Docker resources (if Docker is installed/running).

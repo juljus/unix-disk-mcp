@@ -13,24 +13,6 @@ export function registerDiscoveryTools(server: McpServer, config: Config) {
     {},
     async () => {
       try {
-        if (process.platform !== 'darwin') {
-          return {
-            content: [
-              {
-                type: "text" as const,
-                text: JSON.stringify({
-                  success: false,
-                  error: "list_applications is only supported on macOS",
-                  code: "PLATFORM_NOT_SUPPORTED",
-                  note: "Linux application discovery not yet implemented. Use find_large_items on /usr/share/applications or ~/.local/share/applications",
-                }),
-              },
-            ],
-          };
-        }
-        
-        // macOS: Use Spotlight
-        const appDirs = ["/Applications", join(process.env.HOME || "", "Applications")];
         const apps: Array<{
           name: string;
           path: string;
@@ -38,49 +20,138 @@ export function registerDiscoveryTools(server: McpServer, config: Config) {
           last_opened: string | null;
         }> = [];
 
-        for (const dir of appDirs) {
-          if (!existsSync(dir)) continue;
+        if (process.platform === 'darwin') {
+          // macOS: Use Spotlight
+          const appDirs = ["/Applications", join(process.env.HOME || "", "Applications")];
 
-          const entries = readdirSync(dir).filter((name) => name.endsWith(".app"));
+          for (const dir of appDirs) {
+            if (!existsSync(dir)) continue;
 
-          for (const name of entries) {
-            const appPath = join(dir, name);
-            try {
-              // Get size using du
-              const duOutput = execSync(`du -sk "${appPath}" 2>/dev/null`, {
-                encoding: "utf-8",
-              });
-              const size = parseInt(duOutput.split("\t")[0]) * 1024;
+            const entries = readdirSync(dir).filter((name) => name.endsWith(".app"));
 
-              // Get last opened using mdls (Spotlight metadata)
-              let lastOpened: string | null = null;
+            for (const name of entries) {
+              const appPath = join(dir, name);
               try {
-                const mdlsOutput = execSync(
-                  `mdls -name kMDItemLastUsedDate -raw "${appPath}" 2>/dev/null`,
-                  { encoding: "utf-8" }
-                );
-                if (mdlsOutput && !mdlsOutput.includes("null")) {
-                  lastOpened = new Date(mdlsOutput.trim()).toISOString();
-                }
-              } catch {
-                // Spotlight metadata not available
-              }
+                // Get size using du
+                const duOutput = execSync(`du -sk "${appPath}" 2>/dev/null`, {
+                  encoding: "utf-8",
+                });
+                const size = parseInt(duOutput.split("\t")[0]) * 1024;
 
-              apps.push({
-                name: name.replace(".app", ""),
-                path: appPath,
-                size,
-                last_opened: lastOpened,
-              });
-            } catch {
-              apps.push({
-                name: name.replace(".app", ""),
-                path: appPath,
-                size: null,
-                last_opened: null,
-              });
+                // Get last opened using mdls (Spotlight metadata)
+                let lastOpened: string | null = null;
+                try {
+                  const mdlsOutput = execSync(
+                    `mdls -name kMDItemLastUsedDate -raw "${appPath}" 2>/dev/null`,
+                    { encoding: "utf-8" }
+                  );
+                  if (mdlsOutput && !mdlsOutput.includes("null")) {
+                    lastOpened = new Date(mdlsOutput.trim()).toISOString();
+                  }
+                } catch {
+                  // Spotlight metadata not available
+                }
+
+                apps.push({
+                  name: name.replace(".app", ""),
+                  path: appPath,
+                  size,
+                  last_opened: lastOpened,
+                });
+              } catch {
+                apps.push({
+                  name: name.replace(".app", ""),
+                  path: appPath,
+                  size: null,
+                  last_opened: null,
+                });
+              }
             }
           }
+        } else if (process.platform === 'linux') {
+          // Linux: Parse .desktop files
+          const desktopDirs = [
+            "/usr/share/applications",
+            "/usr/local/share/applications",
+            join(process.env.HOME || "", ".local/share/applications"),
+            join(process.env.HOME || "", ".local/share/flatpak/exports/share/applications"),
+            "/var/lib/snapd/desktop/applications",
+          ];
+
+          for (const dir of desktopDirs) {
+            if (!existsSync(dir)) continue;
+
+            try {
+              const entries = readdirSync(dir).filter((name) => name.endsWith(".desktop"));
+
+              for (const filename of entries) {
+                const desktopPath = join(dir, filename);
+                try {
+                  const content = require('fs').readFileSync(desktopPath, 'utf-8');
+                  
+                  // Parse .desktop file for Name and Exec
+                  const nameMatch = content.match(/^Name=(.+)$/m);
+                  const execMatch = content.match(/^Exec=(.+)$/m);
+                  
+                  if (nameMatch && execMatch) {
+                    const appName = nameMatch[1];
+                    const execLine = execMatch[1];
+                    
+                    // Extract executable path (remove arguments like %F, %U, etc.)
+                    const execPath = execLine.split(/\s+/)[0].replace(/^["']|["']$/g, '');
+                    
+                    // Try to get size from executable
+                    let size: number | null = null;
+                    try {
+                      // Try to find actual executable
+                      let realPath = execPath;
+                      if (!execPath.startsWith('/')) {
+                        // Try to find in PATH
+                        try {
+                          realPath = execSync(`which ${execPath} 2>/dev/null`, {
+                            encoding: "utf-8",
+                          }).trim();
+                        } catch {
+                          // Not in PATH
+                        }
+                      }
+                      
+                      if (realPath && existsSync(realPath)) {
+                        const stats = statSync(realPath);
+                        size = stats.size;
+                      }
+                    } catch {
+                      // Size calculation failed
+                    }
+
+                    apps.push({
+                      name: appName,
+                      path: desktopPath,
+                      size,
+                      last_opened: null, // Not easily available on Linux
+                    });
+                  }
+                } catch {
+                  // Failed to parse this .desktop file
+                }
+              }
+            } catch {
+              // Failed to read directory
+            }
+          }
+        } else {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify({
+                  success: false,
+                  error: `Platform ${process.platform} not supported`,
+                  code: "PLATFORM_NOT_SUPPORTED",
+                }),
+              },
+            ],
+          };
         }
 
         // Sort by size descending
@@ -111,75 +182,172 @@ export function registerDiscoveryTools(server: McpServer, config: Config) {
     }
   );
 
-  // list_homebrew
+  // list_packages
   server.tool(
-    "list_homebrew",
-    "List Homebrew packages (formulas and casks)",
+    "list_packages",
+    "List installed packages from available package managers (Homebrew, apt, dnf, pacman, etc.)",
     {
       include_casks: z
         .boolean()
         .optional()
         .default(true)
-        .describe("Include casks in the list"),
+        .describe("Include Homebrew casks in the list (macOS only)"),
     },
     async ({ include_casks }) => {
       try {
-        // Check if Homebrew is installed
+        const packages: Array<{
+          name: string;
+          type: string;
+          version: string;
+          source: string;
+        }> = [];
+
+        // Try Homebrew first (works on macOS and Linux)
         try {
           execSync("which brew", { encoding: "utf-8" });
+          
+          // Get formulas
+          const formulaOutput = execSync("brew list --formula --versions 2>/dev/null", {
+            encoding: "utf-8",
+          });
+          for (const line of formulaOutput.trim().split("\n")) {
+            if (!line) continue;
+            const parts = line.split(" ");
+            packages.push({
+              name: parts[0],
+              type: "formula",
+              version: parts.slice(1).join(" "),
+              source: "homebrew",
+            });
+          }
+
+          // Get casks (macOS only)
+          if (include_casks && process.platform === 'darwin') {
+            try {
+              const caskOutput = execSync("brew list --cask --versions 2>/dev/null", {
+                encoding: "utf-8",
+              });
+              for (const line of caskOutput.trim().split("\n")) {
+                if (!line) continue;
+                const parts = line.split(" ");
+                packages.push({
+                  name: parts[0],
+                  type: "cask",
+                  version: parts.slice(1).join(" "),
+                  source: "homebrew",
+                });
+              }
+            } catch {
+              // No casks installed
+            }
+          }
         } catch {
+          // Homebrew not installed
+        }
+
+        // On Linux, also try system package managers (even if Homebrew exists)
+        // On macOS, skip system package managers (Homebrew is the standard)
+        if (process.platform === 'linux') {
+          // Try apt (Debian/Ubuntu)
+          try {
+            execSync("which apt", { encoding: "utf-8" });
+            const aptOutput = execSync("dpkg-query -W -f='${Package} ${Version}\\n' 2>/dev/null", {
+              encoding: "utf-8",
+            });
+            for (const line of aptOutput.trim().split("\n")) {
+              if (!line) continue;
+              const parts = line.split(" ");
+              packages.push({
+                name: parts[0],
+                type: "package",
+                version: parts[1] || "",
+                source: "apt",
+              });
+            }
+          } catch {
+            // apt not available, try other package managers
+          }
+
+          // Try dnf/yum (Fedora/RHEL) - only if apt not found
+          if (packages.filter(p => p.source === 'apt').length === 0) {
+            try {
+              execSync("which dnf", { encoding: "utf-8" });
+              const dnfOutput = execSync("dnf list installed 2>/dev/null | tail -n +2", {
+                encoding: "utf-8",
+              });
+              for (const line of dnfOutput.trim().split("\n")) {
+                if (!line) continue;
+                const parts = line.split(/\s+/);
+                if (parts.length >= 2) {
+                  packages.push({
+                    name: parts[0].split(".")[0],
+                    type: "package",
+                    version: parts[1],
+                    source: "dnf",
+                  });
+                }
+              }
+            } catch {
+              // Try yum as fallback
+              try {
+                execSync("which yum", { encoding: "utf-8" });
+                const yumOutput = execSync("yum list installed 2>/dev/null | tail -n +2", {
+                  encoding: "utf-8",
+                });
+                for (const line of yumOutput.trim().split("\n")) {
+                  if (!line) continue;
+                  const parts = line.split(/\s+/);
+                  if (parts.length >= 2) {
+                    packages.push({
+                      name: parts[0].split(".")[0],
+                      type: "package",
+                      version: parts[1],
+                      source: "yum",
+                    });
+                  }
+                }
+              } catch {
+                // yum not available
+              }
+            }
+          }
+
+          // Try pacman (Arch) - only if apt/dnf/yum not found
+          if (packages.filter(p => ['apt', 'dnf', 'yum'].includes(p.source)).length === 0) {
+            try {
+              execSync("which pacman", { encoding: "utf-8" });
+              const pacmanOutput = execSync("pacman -Q 2>/dev/null", {
+                encoding: "utf-8",
+              });
+              for (const line of pacmanOutput.trim().split("\n")) {
+                if (!line) continue;
+                const parts = line.split(" ");
+                packages.push({
+                  name: parts[0],
+                  type: "package",
+                  version: parts[1] || "",
+                  source: "pacman",
+                });
+              }
+            } catch {
+              // pacman not available
+            }
+          }
+        }
+
+        if (packages.length === 0) {
           return {
             content: [
               {
                 type: "text" as const,
                 text: JSON.stringify({
                   success: false,
-                  error: "Homebrew is not installed",
-                  code: "HOMEBREW_NOT_FOUND",
+                  error: "No supported package manager found (tried: brew, apt, dnf, yum, pacman)",
+                  code: "NO_PACKAGE_MANAGER",
                 }),
               },
             ],
           };
-        }
-
-        const packages: Array<{
-          name: string;
-          type: "formula" | "cask";
-          version: string;
-        }> = [];
-
-        // Get formulas
-        const formulaOutput = execSync("brew list --formula --versions 2>/dev/null", {
-          encoding: "utf-8",
-        });
-        for (const line of formulaOutput.trim().split("\n")) {
-          if (!line) continue;
-          const parts = line.split(" ");
-          packages.push({
-            name: parts[0],
-            type: "formula",
-            version: parts.slice(1).join(" "),
-          });
-        }
-
-        // Get casks
-        if (include_casks) {
-          try {
-            const caskOutput = execSync("brew list --cask --versions 2>/dev/null", {
-              encoding: "utf-8",
-            });
-            for (const line of caskOutput.trim().split("\n")) {
-              if (!line) continue;
-              const parts = line.split(" ");
-              packages.push({
-                name: parts[0],
-                type: "cask",
-                version: parts.slice(1).join(" "),
-              });
-            }
-          } catch {
-            // No casks installed
-          }
         }
 
         return {
@@ -198,7 +366,7 @@ export function registerDiscoveryTools(server: McpServer, config: Config) {
               text: JSON.stringify({
                 success: false,
                 error: error instanceof Error ? error.message : "Unknown error",
-                code: "LIST_HOMEBREW_FAILED",
+                code: "LIST_PACKAGES_FAILED",
               }),
             },
           ],

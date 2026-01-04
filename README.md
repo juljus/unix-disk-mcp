@@ -112,8 +112,8 @@ unix-disk-mcp delete
 - `search_files` - Find files/directories by name pattern
 
 **Discovery:**
-- `list_applications` - Installed apps with last-opened dates (macOS only)
-- `list_homebrew` - Homebrew packages
+- `list_applications` - Installed apps with last-opened dates (macOS); app list only on Linux
+- `list_packages` - Installed packages (Homebrew, apt, dnf, yum, pacman)
 - `list_docker` - Docker images, containers, volumes
 
 **Staging:**
@@ -126,12 +126,14 @@ unix-disk-mcp delete
 **macOS:**
 - Trash via AppleScript
 - Accurate APFS disk usage (diskutil)
-- App discovery via Spotlight
+- App discovery via Spotlight with last-opened dates
+- Homebrew package listing
 
 **Linux:**
 - Trash via gio/trash-cli/freedesktop spec
 - Disk usage via df
-- App discovery not yet implemented (use find_large_items on app directories)
+- App discovery via .desktop files (no last-opened dates)
+- System package manager support (apt, dnf, yum, pacman) + Homebrew if installed
 
 ## Safety Features
 
