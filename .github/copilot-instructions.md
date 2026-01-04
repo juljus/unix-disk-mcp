@@ -42,7 +42,7 @@ The entire security model depends on this separation:
 
 The delete script has multiple layers of protection:
 1. Not accessible as an MCP tool
-2. Requires human verification ("I AM HUMAN" prompt)
+2. Requires human verification ("HUMAN" prompt)
 3. Explicit warnings for AI agents to exit immediately
 4. Final y/N confirmation
 

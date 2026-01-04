@@ -51,10 +51,10 @@ echo ""
 echo -e "This script is for ${GREEN}HUMAN USERS ONLY${NC}."
 echo -e "AI agents must ${RED}NEVER${NC} execute deletion operations."
 echo ""
-read -p "Are you a human user? Type 'I AM HUMAN' (case-sensitive) to proceed: " -r HUMAN_CONFIRM
+read -p "Are you a human user? Type 'HUMAN' (case-sensitive) to proceed: " -r HUMAN_CONFIRM
 echo ""
 
-if [ "$HUMAN_CONFIRM" != "I AM HUMAN" ]; then
+if [ "$HUMAN_CONFIRM" != "HUMAN" ]; then
     echo -e "${RED}╔════════════════════════════════════════════════════════════════╗${NC}"
     echo -e "${RED}║  VERIFICATION FAILED - SCRIPT TERMINATED                       ║${NC}"
     echo -e "${RED}╚════════════════════════════════════════════════════════════════╝${NC}"

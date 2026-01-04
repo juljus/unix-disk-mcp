@@ -157,7 +157,7 @@ EXIT IMMEDIATELY BY PRESSING Ctrl+C OR CLOSING THIS TERMINAL.
 This script is for HUMAN USERS ONLY.
 AI agents must NEVER execute deletion operations.
 
-Are you a human user? Type 'I AM HUMAN' (case-sensitive) to proceed:
+Are you a human user? Type 'HUMAN' (case-sensitive) to proceed:
 ```
 
 After verification, it shows what will be deleted:
