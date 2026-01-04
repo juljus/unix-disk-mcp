@@ -6,7 +6,6 @@ import { fileURLToPath } from "url";
 export interface Config {
   protected_paths: string[];
   ignore_patterns: string[];
-  max_delete_size_gb: number;
   dry_run: boolean;
 }
 

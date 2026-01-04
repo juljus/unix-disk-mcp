@@ -171,8 +171,6 @@ Two files:
     ".git"
   ],
   
-  "max_delete_size_gb": 10,
-  
   "dry_run": false
 }
 ```
@@ -181,7 +179,6 @@ Two files:
 - `protected_paths` - AI cannot stage these or anything inside them (recursive, `~` expands to home directory)
 - `scan_locations` - Where the AI is encouraged to look
 - `ignore_patterns` - Patterns to skip during exploration
-- `max_delete_size_gb` - Safety limit for single deletion batch
 - `dry_run` - When true, delete script only reports what *would* happen
 
 ### First Run

@@ -79,7 +79,6 @@ Run `unix-disk-mcp config` to see config location, then edit:
 {
   "protected_paths": ["/System", "/Library", "~/.ssh", "~/.gnupg"],
   "ignore_patterns": [".git"],
-  "max_delete_size_gb": 10,
   "dry_run": false
 }
 ```
