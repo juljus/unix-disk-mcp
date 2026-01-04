@@ -20,24 +20,15 @@ const DEFAULT_PROTECTED_PATHS = [
 const MCP_CONFIGS = {
   vscode: {
     name: "VS Code",
-    path: join(
-      homedir(),
-      "Library",
-      "Application Support",
-      "Code",
-      "User",
-      "mcp.json"
-    ),
+    path: process.platform === 'darwin'
+      ? join(homedir(), "Library", "Application Support", "Code", "User", "mcp.json")
+      : join(homedir(), ".config", "Code", "User", "mcp.json"),
   },
   claude: {
     name: "Claude Desktop",
-    path: join(
-      homedir(),
-      "Library",
-      "Application Support",
-      "Claude",
-      "claude_desktop_config.json"
-    ),
+    path: process.platform === 'darwin'
+      ? join(homedir(), "Library", "Application Support", "Claude", "claude_desktop_config.json")
+      : join(homedir(), ".config", "Claude", "claude_desktop_config.json"),
   },
 };
 

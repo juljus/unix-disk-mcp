@@ -81,42 +81,59 @@ export function registerExplorationTools(server: McpServer, config: Config) {
     {},
     async () => {
       try {
-        // Use diskutil for accurate APFS container usage
-        const diskutilOutput = execSync("diskutil info / | grep -E 'Volume Name|Container Total Space|Container Free Space'", { 
-          encoding: "utf-8" 
-        });
+        let disk: any;
         
-        const lines = diskutilOutput.trim().split("\n");
-        const volumeName = lines[0]?.split(":")[1]?.trim() || "Unknown";
-        
-        // Parse container space - format: "494.4 GB (494384795648 Bytes) (exactly...)"
-        const totalLine = lines[1]?.split(":")[1]?.trim() || "";
-        const freeLine = lines[2]?.split(":")[1]?.trim() || "";
-        
-        // Extract human-readable values before the first parenthesis (e.g., "494.4 GB")
-        const totalGB = totalLine.split("(")[0]?.trim() || "Unknown";
-        const freeGB = freeLine.split("(")[0]?.trim() || "Unknown";
-        
-        // Extract bytes for calculations - inside first parenthesis
-        const totalBytesMatch = totalLine.match(/\((\d+) Bytes\)/);
-        const freeBytesMatch = freeLine.match(/\((\d+) Bytes\)/);
-        
-        const totalBytes = totalBytesMatch ? parseInt(totalBytesMatch[1]) : 0;
-        const freeBytes = freeBytesMatch ? parseInt(freeBytesMatch[1]) : 0;
-        const usedBytes = totalBytes - freeBytes;
-        const percentUsed = totalBytes > 0 ? Math.round((usedBytes / totalBytes) * 100) : 0;
-        
-        // Format used space
-        const usedGB = (usedBytes / 1e9).toFixed(1) + " GB";
+        if (process.platform === 'darwin') {
+          // macOS: Use diskutil for accurate APFS container usage
+          const diskutilOutput = execSync("diskutil info / | grep -E 'Volume Name|Container Total Space|Container Free Space'", { 
+            encoding: "utf-8" 
+          });
+          
+          const lines = diskutilOutput.trim().split("\n");
+          const volumeName = lines[0]?.split(":")[1]?.trim() || "Unknown";
+          
+          // Parse container space - format: "494.4 GB (494384795648 Bytes) (exactly...)"
+          const totalLine = lines[1]?.split(":")[1]?.trim() || "";
+          const freeLine = lines[2]?.split(":")[1]?.trim() || "";
+          
+          // Extract human-readable values before the first parenthesis (e.g., "494.4 GB")
+          const totalGB = totalLine.split("(")[0]?.trim() || "Unknown";
+          const freeGB = freeLine.split("(")[0]?.trim() || "Unknown";
+          
+          // Extract bytes for calculations - inside first parenthesis
+          const totalBytesMatch = totalLine.match(/\((\d+) Bytes\)/);
+          const freeBytesMatch = freeLine.match(/\((\d+) Bytes\)/);
+          
+          const totalBytes = totalBytesMatch ? parseInt(totalBytesMatch[1]) : 0;
+          const freeBytes = freeBytesMatch ? parseInt(freeBytesMatch[1]) : 0;
+          const usedBytes = totalBytes - freeBytes;
+          const percentUsed = totalBytes > 0 ? Math.round((usedBytes / totalBytes) * 100) : 0;
+          
+          // Format used space
+          const usedGB = (usedBytes / 1e9).toFixed(1) + " GB";
 
-        const disk = {
-          volume: volumeName,
-          total: totalGB,
-          used: usedGB,
-          available: freeGB,
-          percent_used: `${percentUsed}%`,
-          note: "APFS container usage (accurate)",
-        };
+          disk = {
+            volume: volumeName,
+            total: totalGB,
+            used: usedGB,
+            available: freeGB,
+            percent_used: `${percentUsed}%`,
+            note: "APFS container usage (accurate)",
+          };
+        } else {
+          // Linux: Use df
+          const dfOutput = execSync("df -h / | tail -1", { encoding: "utf-8" });
+          const parts = dfOutput.trim().split(/\s+/);
+          
+          disk = {
+            filesystem: parts[0],
+            total: parts[1],
+            used: parts[2],
+            available: parts[3],
+            percent_used: parts[4],
+            mounted: parts[5],
+          };
+        }
 
         // Get home directory breakdown
         const home = homedir();

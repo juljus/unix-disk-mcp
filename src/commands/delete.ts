@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
-import { readFileSync, writeFileSync, existsSync } from "fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs";
 import { execSync } from "child_process";
+import { join } from "path";
+import { homedir } from "os";
 import * as readline from "readline";
 import {
   getStagedFilePath,
@@ -145,16 +147,48 @@ function formatSize(bytes: number): string {
 }
 
 /**
- * Move item to Trash using AppleScript
+ * Move item to Trash using platform-specific method
  */
 function moveToTrash(path: string): { success: boolean; error?: string } {
   try {
-    const script = `
-      tell application "Finder"
-        move POSIX file "${path}" to trash
-      end tell
-    `;
-    execSync(`osascript -e '${script}'`, { stdio: "pipe" });
+    if (process.platform === 'darwin') {
+      // macOS: Use AppleScript
+      const script = `
+        tell application "Finder"
+          move POSIX file "${path}" to trash
+        end tell
+      `;
+      execSync(`osascript -e '${script}'`, { stdio: "pipe" });
+    } else if (process.platform === 'linux') {
+      // Linux: Try gio first, fall back to trash-cli
+      try {
+        execSync(`gio trash "${path}"`, { stdio: "pipe" });
+      } catch {
+        // Fallback: try trash-cli
+        try {
+          execSync(`trash-put "${path}"`, { stdio: "pipe" });
+        } catch {
+          // Last resort: move to freedesktop trash
+          const trashDir = join(homedir(), '.local', 'share', 'Trash', 'files');
+          const infoDir = join(homedir(), '.local', 'share', 'Trash', 'info');
+          mkdirSync(trashDir, { recursive: true });
+          mkdirSync(infoDir, { recursive: true });
+          
+          const basename = require('path').basename(path);
+          const timestamp = new Date().toISOString();
+          execSync(`mv "${path}" "${trashDir}/${basename}"`, { stdio: "pipe" });
+          
+          // Create .trashinfo file
+          const infoContent = `[Trash Info]\nPath=${path}\nDeletionDate=${timestamp}`;
+          require('fs').writeFileSync(`${infoDir}/${basename}.trashinfo`, infoContent);
+        }
+      }
+    } else {
+      return {
+        success: false,
+        error: `Platform ${process.platform} not supported`,
+      };
+    }
     return { success: true };
   } catch (error: any) {
     return {

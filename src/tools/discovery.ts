@@ -13,6 +13,23 @@ export function registerDiscoveryTools(server: McpServer, config: Config) {
     {},
     async () => {
       try {
+        if (process.platform !== 'darwin') {
+          return {
+            content: [
+              {
+                type: "text" as const,
+                text: JSON.stringify({
+                  success: false,
+                  error: "list_applications is only supported on macOS",
+                  code: "PLATFORM_NOT_SUPPORTED",
+                  note: "Linux application discovery not yet implemented. Use find_large_items on /usr/share/applications or ~/.local/share/applications",
+                }),
+              },
+            ],
+          };
+        }
+        
+        // macOS: Use Spotlight
         const appDirs = ["/Applications", join(process.env.HOME || "", "Applications")];
         const apps: Array<{
           name: string;
