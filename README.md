@@ -13,11 +13,15 @@ Traditional disk cleaners use fixed rules. This tool lets AI *reason* about your
 ## Security
 
 The AI **cannot delete files**. Ever. This is architectural:
+
+**What AI can do:**
 - Explore filesystem
 - Suggest items to delete
 - Stage items for deletion
-- Cannot execute deletion
-- Cannot run delete script
+
+**What AI cannot do:**
+- Execute deletion
+- Run delete script
 
 You run `unix-disk-mcp delete` manually to review and confirm.
 
