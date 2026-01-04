@@ -84,55 +84,87 @@ export function registerExplorationTools(server: McpServer, config: Config) {
         let disk: any;
         
         if (process.platform === 'darwin') {
-          // macOS: Use diskutil for accurate APFS container usage
-          const diskutilOutput = execSync("diskutil info / | grep -E 'Volume Name|Container Total Space|Container Free Space'", { 
-            encoding: "utf-8" 
+          // macOS: Use df to get relevant volumes, plus diskutil for container info
+          const dfOutput = execSync(
+            "df -k | awk '$9==\"/\" || $9==\"/System/Volumes/Data\" || $9~/^\\/Volumes\\// {print}'",
+            { encoding: "utf-8" }
+          );
+          
+          const dfLines = dfOutput.trim().split("\n");
+          const disks = dfLines.map((line) => {
+            const parts = line.trim().split(/\s+/);
+            const totalBytes = parseInt(parts[1]) * 1024 || 0;
+            const usedBytes = parseInt(parts[2]) * 1024 || 0;
+            const availableBytes = parseInt(parts[3]) * 1024 || 0;
+            const percentUsed = Math.round((usedBytes / totalBytes) * 100) || 0;
+            
+            return {
+              filesystem: parts[0],
+              total_bytes: totalBytes,
+              used_bytes: usedBytes,
+              available_bytes: availableBytes,
+              percent_used: percentUsed,
+              mounted_on: parts[8],
+            };
           });
           
-          const lines = diskutilOutput.trim().split("\n");
-          const volumeName = lines[0]?.split(":")[1]?.trim() || "Unknown";
-          
-          // Parse container space - format: "494.4 GB (494384795648 Bytes) (exactly...)"
-          const totalLine = lines[1]?.split(":")[1]?.trim() || "";
-          const freeLine = lines[2]?.split(":")[1]?.trim() || "";
-          
-          // Extract human-readable values before the first parenthesis (e.g., "494.4 GB")
-          const totalGB = totalLine.split("(")[0]?.trim() || "Unknown";
-          const freeGB = freeLine.split("(")[0]?.trim() || "Unknown";
-          
-          // Extract bytes for calculations - inside first parenthesis
-          const totalBytesMatch = totalLine.match(/\((\d+) Bytes\)/);
-          const freeBytesMatch = freeLine.match(/\((\d+) Bytes\)/);
-          
-          const totalBytes = totalBytesMatch ? parseInt(totalBytesMatch[1]) : 0;
-          const freeBytes = freeBytesMatch ? parseInt(freeBytesMatch[1]) : 0;
-          const usedBytes = totalBytes - freeBytes;
-          const percentUsed = totalBytes > 0 ? Math.round((usedBytes / totalBytes) * 100) : 0;
-          
-          // Format used space
-          const usedGB = (usedBytes / 1e9).toFixed(1) + " GB";
-
-          disk = {
-            volume: volumeName,
-            total: totalGB,
-            used: usedGB,
-            available: freeGB,
-            percent_used: `${percentUsed}%`,
-            note: "APFS container usage (accurate)",
-          };
+          // Add container summary for context
+          try {
+            const diskutilOutput = execSync(
+              "diskutil info / | grep -E 'Container Total Space|Container Free Space'",
+              { encoding: "utf-8" }
+            );
+            const lines = diskutilOutput.trim().split("\n");
+            const totalLine = lines[0]?.split(":")[1]?.trim() || "";
+            const freeLine = lines[1]?.split(":")[1]?.trim() || "";
+            
+            const totalBytesMatch = totalLine.match(/\((\d+) Bytes\)/);
+            const freeBytesMatch = freeLine.match(/\((\d+) Bytes\)/);
+            
+            const containerTotal = totalBytesMatch ? parseInt(totalBytesMatch[1]) : 0;
+            const containerFree = freeBytesMatch ? parseInt(freeBytesMatch[1]) : 0;
+            const containerUsed = containerTotal - containerFree;
+            
+            disk = {
+              volumes: disks,
+              apfs_container: {
+                total_bytes: containerTotal,
+                used_bytes: containerUsed,
+                available_bytes: containerFree,
+                percent_used: Math.round((containerUsed / containerTotal) * 100),
+                note: "Shared APFS container space - volumes dynamically allocate from this",
+              },
+            };
+          } catch {
+            // If diskutil fails, just return volumes
+            disk = disks;
+          }
         } else {
-          // Linux: Use df
-          const dfOutput = execSync("df -h / | tail -1", { encoding: "utf-8" });
-          const parts = dfOutput.trim().split(/\s+/);
+          // Linux: Use df to get all relevant filesystems
+          const dfOutput = execSync(
+            "df -B1 | awk 'NR==1 || $6==\"/\" || $6==\"/home\" || $6~/^\\/mnt\\// || $6~/^\\/media\\//'",
+            { encoding: "utf-8" }
+          );
           
-          disk = {
-            filesystem: parts[0],
-            total: parts[1],
-            used: parts[2],
-            available: parts[3],
-            percent_used: parts[4],
-            mounted: parts[5],
-          };
+          const lines = dfOutput.trim().split("\n");
+          const disks = lines.slice(1).map((line) => {
+            const parts = line.trim().split(/\s+/);
+            const totalBytes = parseInt(parts[1]) || 0;
+            const usedBytes = parseInt(parts[2]) || 0;
+            const availableBytes = parseInt(parts[3]) || 0;
+            const percentUsed = Math.round((usedBytes / totalBytes) * 100) || 0;
+            
+            return {
+              filesystem: parts[0],
+              total_bytes: totalBytes,
+              used_bytes: usedBytes,
+              available_bytes: availableBytes,
+              percent_used: percentUsed,
+              mounted_on: parts[5],
+            };
+          });
+          
+          disk = disks;
         }
 
         // Get home directory breakdown
