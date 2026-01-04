@@ -48,10 +48,10 @@ async function main() {
 
 function printHelp() {
   console.log(`
-macos-storage-mcp - AI-assisted disk cleanup for macOS
+unix-disk-mcp - AI-assisted disk cleanup for Unix systems (macOS and Linux)
 
 Usage:
-  macos-storage-mcp [command]
+  unix-disk-mcp [command]
 
 Commands:
   server      Start MCP server (default)
@@ -61,10 +61,10 @@ Commands:
   help        Show this help message
 
 Examples:
-  macos-storage-mcp              # Start server
-  macos-storage-mcp setup        # Configure protected paths
-  macos-storage-mcp delete       # Delete staged items
-  macos-storage-mcp config       # Show config location
+  unix-disk-mcp              # Start server
+  unix-disk-mcp setup        # Configure protected paths
+  unix-disk-mcp delete       # Delete staged items
+  unix-disk-mcp config       # Show config location
   `);
 }
 

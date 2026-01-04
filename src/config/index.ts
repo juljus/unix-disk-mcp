@@ -16,7 +16,7 @@ const __dirname = dirname(__filename);
 
 // XDG Base Directory paths
 const XDG_CONFIG_HOME = process.env.XDG_CONFIG_HOME || join(homedir(), ".config");
-const CONFIG_DIR = join(XDG_CONFIG_HOME, "macos-storage-mcp");
+const CONFIG_DIR = join(XDG_CONFIG_HOME, "unix-disk-mcp");
 const CONFIG_PATH = join(CONFIG_DIR, "config.json");
 
 // Get the directory where the package is installed (for config.sample.json)
@@ -49,7 +49,7 @@ export function loadConfig(): Config {
     } else {
       console.error(`Config file not found: ${CONFIG_PATH}`);
       console.error(`Sample config not found: ${SAMPLE_CONFIG_PATH}`);
-      console.error(`Please create a config file manually or run: macos-storage-mcp setup`);
+      console.error(`Please create a config file manually or run: unix-disk-mcp setup`);
       process.exit(1);
     }
   }

@@ -6,7 +6,7 @@ import { registerStagingTools } from "./tools/staging.js";
 
 export function createServer(config: Config): McpServer {
   const server = new McpServer({
-    name: "macos-storage-mcp",
+    name: "unix-disk-mcp",
     version: "0.1.0",
   });
 

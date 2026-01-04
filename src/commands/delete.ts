@@ -197,7 +197,7 @@ async function confirmDeletion(items: StagedItem[]): Promise<boolean> {
  * Main delete function
  */
 export async function runDelete(): Promise<void> {
-  console.log(`\n${colors.bold}macos-storage-mcp delete${colors.reset}`);
+  console.log(`\n${colors.bold}unix-disk-mcp delete${colors.reset}`);
 
   // Security check: Ensure interactive terminal
   checkInteractiveTerminal();

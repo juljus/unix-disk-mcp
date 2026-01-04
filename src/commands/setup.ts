@@ -67,7 +67,7 @@ function ask(rl: readline.Interface, question: string): Promise<string> {
  */
 function printBanner() {
   console.log("╔════════════════════════════════════════════════════════════════╗");
-  console.log("║        macOS Storage MCP - Setup Wizard                       ║");
+  console.log("║           Unix Disk MCP - Setup Wizard                        ║");
   console.log("╚════════════════════════════════════════════════════════════════╝\n");
 }
 
@@ -158,17 +158,17 @@ function updateMCPConfig(
       if (!data.servers) {
         data.servers = {};
       }
-      data.servers["macos-storage-mcp"] = {
+      data.servers["unix-disk-mcp"] = {
         type: "stdio",
-        command: "macos-storage-mcp",
+        command: "unix-disk-mcp",
       };
     } else {
       // Claude Desktop config format
       if (!data.mcpServers) {
         data.mcpServers = {};
       }
-      data.mcpServers["macos-storage-mcp"] = {
-        command: "macos-storage-mcp",
+      data.mcpServers["unix-disk-mcp"] = {
+        command: "unix-disk-mcp",
         args: [],
       };
     }
@@ -208,8 +208,8 @@ function printManualInstructions() {
 
   console.log("Add this to your MCP client configuration:\n");
   console.log(JSON.stringify({
-    "macos-storage-mcp": {
-      command: "macos-storage-mcp",
+    "unix-disk-mcp": {
+      command: "unix-disk-mcp",
       args: [],
     },
   }, null, 2));
