@@ -1,8 +1,8 @@
-# macOS Storage MCP Server - Design Document
+# Unix Disk MCP Server - Design Document
 
 ## Overview
 
-An MCP server that gives AI agents exploratory access to a macOS filesystem to identify unused, forgotten, or unnecessary files and applications. The AI suggests what to delete, but **cannot delete anything itself** — deletion is a manual user action.
+An MCP server that gives AI agents exploratory access to Unix filesystems (macOS and Linux) to identify unused, forgotten, or unnecessary files and applications. The AI suggests what to delete, but **cannot delete anything itself** — deletion is a manual user action.
 
 ## Philosophy
 
@@ -127,20 +127,19 @@ View all currently staged items.
 
 ## Deletion (Manual Only)
 
-A separate CLI script that is **not** an MCP tool:
+A separate CLI command that is **not** an MCP tool:
 
 ```bash
-./delete-staged.sh
-# or
-npm run delete
+unix-disk-mcp delete
 ```
 
-This script:
-1. Reads the staged list
-2. Shows what will be deleted with total size
-3. Asks for single [y/N] confirmation
-4. Moves items to Trash
-5. Logs results (success and any errors) for AI to see on next run
+This command:
+1. Checks it's running in a real terminal (blocks piped/scripted execution)
+2. Requires typing "HUMAN" to verify human execution
+3. Shows what will be deleted with total size
+4. Asks for final y/N confirmation
+5. Moves items to Trash (macOS: AppleScript, Linux: gio/trash-cli)
+6. Logs results to history.json
 
 ---
 
@@ -179,29 +178,26 @@ On first run, if config doesn't exist, it's automatically created from `config.s
 - **Language:** TypeScript
 - **MCP SDK:** @modelcontextprotocol/sdk
 - **Runtime:** Node.js
-- **Delete script:** Bash (simple, transparent, no build step)
 
 ---
 
 ## Project Structure
 
 ```
-macos-ssd-mcp/
+unix-disk-mcp/
 ├── src/
-│   ├── index.ts              # Entry point
+│   ├── index.ts              # MCP server entry point
 │   ├── server.ts             # MCP server setup, tool registration
+│   ├── cli.ts                # CLI entry point with command routing
 │   ├── config/
 │   │   └── index.ts          # Config loading & validation
 │   ├── tools/
-│   │   ├── exploration.ts    # list_directory, get_disk_usage, find_large_items, get_item_info
-│   │   ├── discovery.ts      # list_applications, list_homebrew, list_docker
+│   │   ├── exploration.ts    # list_directory, get_disk_usage, find_large_items, get_item_info, search_files
+│   │   ├── discovery.ts      # list_applications, list_packages, list_docker
 │   │   └── staging.ts        # stage_for_deletion, unstage, get_staged
-│   ├── commands/
-│   │   ├── setup.ts          # Interactive setup wizard
-│   │   └── delete.ts         # Manual deletion command
-│   ├── cli.ts                # CLI entry point with command routing
-│   └── utils/
-│       └── fs.ts             # Shared filesystem helpers
+│   └── commands/
+│       ├── setup.ts          # Interactive setup wizard
+│       └── delete.ts         # Manual deletion command
 ├── config.sample.json        # Example config (tracked)
 ├── package.json
 ├── tsconfig.json
@@ -211,11 +207,11 @@ macos-ssd-mcp/
 
 The package uses XDG Base Directory specification for user files:
 
-- **Config:** `~/.config/macos-storage-mcp/config.json`
+- **Config:** `~/.config/unix-disk-mcp/config.json`
   - User settings and protected paths
   - Auto-created from config.sample.json on first run
   
-- **Data:** `~/.local/share/macos-storage-mcp/`
+- **Data:** `~/.local/share/unix-disk-mcp/`
   - `staged.json` - Items staged for deletion
   - `history.json` - Deletion history with timestamps
 
