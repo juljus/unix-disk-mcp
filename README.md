@@ -36,7 +36,7 @@ The setup wizard configures everything. Or manually:
 
 **1. Add to MCP client config:**
 
-VS Code: `~/.config/Code/User/mcp.json` (Linux) or `~/Library/Application Support/Code/User/mcp.json` (macOS)
+VS Code: `~/Library/Application Support/Code/User/mcp.json` (macOS) or `~/.config/Code/User/mcp.json` (Linux)
 ```json
 {
   "servers": {
@@ -48,11 +48,24 @@ VS Code: `~/.config/Code/User/mcp.json` (Linux) or `~/Library/Application Suppor
 }
 ```
 
-Claude Desktop: `~/.config/Claude/claude_desktop_config.json` (Linux) or `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS)
+Cursor: `~/.cursor/mcp.json`
 ```json
 {
   "mcpServers": {
     "unix-disk-mcp": {
+      "command": "unix-disk-mcp",
+      "args": []
+    }
+  }
+}
+```
+
+Claude: `~/.claude.json`
+```json
+{
+  "servers": {
+    "unix-disk-mcp": {
+      "type": "stdio",
       "command": "unix-disk-mcp"
     }
   }
