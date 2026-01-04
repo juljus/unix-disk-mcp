@@ -24,11 +24,13 @@ const MCP_CONFIGS = {
       ? join(homedir(), "Library", "Application Support", "Code", "User", "mcp.json")
       : join(homedir(), ".config", "Code", "User", "mcp.json"),
   },
+  cursor: {
+    name: "Cursor",
+    path: join(homedir(), ".cursor", "mcp.json"),
+  },
   claude: {
     name: "Claude Desktop",
-    path: process.platform === 'darwin'
-      ? join(homedir(), "Library", "Application Support", "Claude", "claude_desktop_config.json")
-      : join(homedir(), ".config", "Claude", "claude_desktop_config.json"),
+    path: join(homedir(), ".claude.json"),
   },
 };
 
@@ -103,24 +105,27 @@ async function configureProtectedPaths(
  */
 async function selectMCPClient(
   rl: readline.Interface
-): Promise<"vscode" | "claude" | "both" | "none"> {
+): Promise<"vscode" | "cursor" | "claude" | "all" | "none"> {
   console.log("\n🔧 MCP Client Configuration\n");
   console.log("Which MCP client would you like to configure?\n");
-  console.log("  1. VS Code (Roo Cline)");
-  console.log("  2. Claude Desktop");
-  console.log("  3. Both");
-  console.log("  4. None (manual configuration)\n");
+  console.log("  1. VS Code");
+  console.log("  2. Cursor");
+  console.log("  3. Claude Desktop");
+  console.log("  4. All of the above");
+  console.log("  5. None (manual configuration)\n");
 
-  const answer = await ask(rl, "Select [1-4]: ");
+  const answer = await ask(rl, "Select [1-5]: ");
 
   switch (answer.trim()) {
     case "1":
       return "vscode";
     case "2":
-      return "claude";
+      return "cursor";
     case "3":
-      return "both";
+      return "claude";
     case "4":
+      return "all";
+    case "5":
     default:
       return "none";
   }
@@ -130,7 +135,7 @@ async function selectMCPClient(
  * Update MCP client config
  */
 function updateMCPConfig(
-  client: "vscode" | "claude",
+  client: "vscode" | "cursor" | "claude",
   configPath: string
 ): boolean {
   const config = MCP_CONFIGS[client];
@@ -144,23 +149,23 @@ function updateMCPConfig(
     const raw = readFileSync(config.path, "utf-8");
     const data = JSON.parse(raw);
 
-    if (client === "vscode") {
-      // VS Code MCP config format
-      if (!data.servers) {
-        data.servers = {};
-      }
-      data.servers["unix-disk-mcp"] = {
-        type: "stdio",
-        command: "unix-disk-mcp",
-      };
-    } else {
-      // Claude Desktop config format
+    if (client === "cursor") {
+      // Cursor format: uses "mcpServers" without "type"
       if (!data.mcpServers) {
         data.mcpServers = {};
       }
       data.mcpServers["unix-disk-mcp"] = {
         command: "unix-disk-mcp",
         args: [],
+      };
+    } else {
+      // VS Code & Claude format: use "servers" with "type"
+      if (!data.servers) {
+        data.servers = {};
+      }
+      data.servers["unix-disk-mcp"] = {
+        type: "stdio",
+        command: "unix-disk-mcp",
       };
     }
 
@@ -205,8 +210,11 @@ function printManualInstructions() {
     },
   }, null, 2));
 
-  console.log("\n\nVS Code (Roo Cline):");
+  console.log("\n\nVS Code:");
   console.log(`  ${MCP_CONFIGS.vscode.path}\n`);
+
+  console.log("Cursor:");
+  console.log(`  ${MCP_CONFIGS.cursor.path}\n`);
 
   console.log("Claude Desktop:");
   console.log(`  ${MCP_CONFIGS.claude.path}\n`);
@@ -236,10 +244,13 @@ export async function runSetup(): Promise<void> {
     if (client === "none") {
       printManualInstructions();
     } else {
-      if (client === "vscode" || client === "both") {
+      if (client === "vscode" || client === "all") {
         updateMCPConfig("vscode", getConfigPath());
       }
-      if (client === "claude" || client === "both") {
+      if (client === "cursor" || client === "all") {
+        updateMCPConfig("cursor", getConfigPath());
+      }
+      if (client === "claude" || client === "all") {
         updateMCPConfig("claude", getConfigPath());
       }
 
