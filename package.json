@@ -4,19 +4,43 @@
   "description": "MCP server for AI-assisted disk cleanup on macOS",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "macos-storage-mcp": "./dist/cli.js"
+  },
   "scripts": {
     "dev": "npx tsx src/index.ts",
-    "build": "tsc",
+    "build": "tsc && chmod +x dist/cli.js",
     "start": "node dist/index.js",
-    "delete": "./scripts/delete-staged.sh"
+    "delete": "node dist/commands/delete.js",
+    "setup": "node dist/commands/setup.js",
+    "prepublishOnly": "npm run build"
   },
+  "files": [
+    "dist/**/*",
+    "config.sample.json",
+    "README.md",
+    "LICENSE"
+  ],
   "keywords": [
     "mcp",
     "macos",
     "disk-cleanup",
-    "ai"
+    "ai",
+    "storage",
+    "model-context-protocol"
   ],
+  "author": "Julius Dehner",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/juliusdehner/macos-storage-mcp.git"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "os": [
+    "darwin"
+  ],
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"
   },

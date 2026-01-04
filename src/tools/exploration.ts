@@ -81,10 +81,42 @@ export function registerExplorationTools(server: McpServer, config: Config) {
     {},
     async () => {
       try {
-        // Get overall disk usage
-        const dfOutput = execSync("df -h /", { encoding: "utf-8" });
-        const dfLines = dfOutput.trim().split("\n");
-        const dfParts = dfLines[1].split(/\s+/);
+        // Use diskutil for accurate APFS container usage
+        const diskutilOutput = execSync("diskutil info / | grep -E 'Volume Name|Container Total Space|Container Free Space'", { 
+          encoding: "utf-8" 
+        });
+        
+        const lines = diskutilOutput.trim().split("\n");
+        const volumeName = lines[0]?.split(":")[1]?.trim() || "Unknown";
+        
+        // Parse container space - format: "494.4 GB (494384795648 Bytes) (exactly...)"
+        const totalLine = lines[1]?.split(":")[1]?.trim() || "";
+        const freeLine = lines[2]?.split(":")[1]?.trim() || "";
+        
+        // Extract human-readable values before the first parenthesis (e.g., "494.4 GB")
+        const totalGB = totalLine.split("(")[0]?.trim() || "Unknown";
+        const freeGB = freeLine.split("(")[0]?.trim() || "Unknown";
+        
+        // Extract bytes for calculations - inside first parenthesis
+        const totalBytesMatch = totalLine.match(/\((\d+) Bytes\)/);
+        const freeBytesMatch = freeLine.match(/\((\d+) Bytes\)/);
+        
+        const totalBytes = totalBytesMatch ? parseInt(totalBytesMatch[1]) : 0;
+        const freeBytes = freeBytesMatch ? parseInt(freeBytesMatch[1]) : 0;
+        const usedBytes = totalBytes - freeBytes;
+        const percentUsed = totalBytes > 0 ? Math.round((usedBytes / totalBytes) * 100) : 0;
+        
+        // Format used space
+        const usedGB = (usedBytes / 1e9).toFixed(1) + " GB";
+
+        const disk = {
+          volume: volumeName,
+          total: totalGB,
+          used: usedGB,
+          available: freeGB,
+          percent_used: `${percentUsed}%`,
+          note: "APFS container usage (accurate)",
+        };
 
         // Get home directory breakdown
         const home = homedir();
@@ -115,13 +147,7 @@ export function registerExplorationTools(server: McpServer, config: Config) {
                 {
                   success: true,
                   data: {
-                    disk: {
-                      filesystem: dfParts[0],
-                      total: dfParts[1],
-                      used: dfParts[2],
-                      available: dfParts[3],
-                      percent_used: dfParts[4],
-                    },
+                    disk,
                     home_breakdown: breakdown,
                   },
                 },
@@ -151,38 +177,81 @@ export function registerExplorationTools(server: McpServer, config: Config) {
   // find_large_items
   server.tool(
     "find_large_items",
-    "Find files and directories above a size threshold",
+    "Find files and directories above a size threshold. WORKFLOW: (1) Start with max_depth=3 on home dir for overview, (2) Identify large branches (e.g., Library/Application Support/Steam), (3) Drill down into those specific paths with max_depth=5-8, (4) For final details, search specific subdirs with no depth limit. This progressive approach is fast and gives clear actionable results.",
     {
       path: z.string().describe("Path to search within"),
       min_size_mb: z.number().describe("Minimum size in megabytes"),
+      max_depth: z
+        .number()
+        .optional()
+        .describe("Maximum depth from this path. Start with 3 for overview, use 5-8 for branch exploration, omit for deep dive. REQUIRED for initial scans to avoid slow searches."),
       max_results: z
         .number()
         .optional()
         .default(20)
         .describe("Maximum number of results to return"),
     },
-    async ({ path, min_size_mb, max_results }) => {
+    async ({ path, min_size_mb, max_depth, max_results }) => {
       try {
         const expandedPath = expandPath(path);
-        const minSizeKb = min_size_mb * 1024;
 
-        // Use find + du to get large items
-        const cmd = `find "${expandedPath}" -maxdepth 3 -type f -size +${min_size_mb}M 2>/dev/null | head -${max_results * 2}`;
-        const output = execSync(cmd, { encoding: "utf-8" });
+        // Find large files (no depth limit, but use timeout)
+        const fileCmd = `timeout 30 find "${expandedPath}" -type f -size +${min_size_mb}M 2>/dev/null || true`;
+        const fileOutput = execSync(fileCmd, { encoding: "utf-8", maxBuffer: 10 * 1024 * 1024 });
 
-        const items = output
+        const files = fileOutput
           .trim()
           .split("\n")
           .filter((line) => line.length > 0)
+          .slice(0, max_results * 2) // Limit how many we stat
           .map((filePath) => {
             try {
               const stats = statSync(filePath);
-              return { path: filePath, size: stats.size };
+              return { path: filePath, size: stats.size, type: "file" };
             } catch {
               return null;
             }
           })
-          .filter((item) => item !== null)
+          .filter((item) => item !== null);
+
+        // Find large directories using du
+        const minSizeKb = min_size_mb * 1024;
+        const depthFlag = max_depth !== undefined ? `-d ${max_depth}` : `-a`;
+        const dirCmd = `du ${depthFlag} -k "${expandedPath}" 2>/dev/null | awk '$1 > ${minSizeKb}' | sort -rn | head -${max_results * 2}`;
+        const dirOutput = execSync(dirCmd, { encoding: "utf-8", maxBuffer: 10 * 1024 * 1024, timeout: 60000 });
+
+        const dirs = dirOutput
+          .trim()
+          .split("\n")
+          .filter((line) => line.length > 0)
+          .map((line) => {
+            const parts = line.split("\t");
+            if (parts.length === 2) {
+              const size = parseInt(parts[0]) * 1024;
+              const itemPath = parts[1];
+              // Check if it's a directory
+              try {
+                const stats = statSync(itemPath);
+                if (stats.isDirectory()) {
+                  return { path: itemPath, size, type: "directory" };
+                }
+              } catch {}
+            }
+            return null;
+          })
+          .filter((item) => item !== null);
+
+        // Filter out parent directories - only keep leaves or items without children in results
+        const filteredDirs = dirs.filter((dir) => {
+          // Check if any other directory in the list is a child of this one
+          const hasChildInList = dirs.some(
+            (other) => other !== dir && other!.path.startsWith(dir!.path + "/")
+          );
+          return !hasChildInList;
+        });
+
+        // Combine and sort by size
+        const items = [...files, ...filteredDirs]
           .sort((a, b) => b!.size - a!.size)
           .slice(0, max_results);
 

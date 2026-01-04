@@ -185,16 +185,7 @@ Two files:
 - `dry_run` - When true, delete script only reports what *would* happen
 
 ### First Run
-If `config.json` doesn't exist, the server refuses to start and instructs the user to copy from `config.sample.json`.
-
----
-
-## Data Storage
-
-Location: `./data/` (in project folder)
-
-- `staged.json` - Current staged deletion list
-- `history.json` - Log of past deletions
+On first run, if config doesn't exist, it's automatically created from `config.sample.json` at `~/.config/macos-storage-mcp/config.json`. User can also run `macos-storage-mcp setup` for interactive configuration.
 
 ---
 
@@ -220,18 +211,30 @@ macos-ssd-mcp/
 │   │   ├── exploration.ts    # list_directory, get_disk_usage, find_large_items, get_item_info
 │   │   ├── discovery.ts      # list_applications, list_homebrew, list_docker
 │   │   └── staging.ts        # stage_for_deletion, unstage, get_staged
+│   ├── commands/
+│   │   ├── setup.ts          # Interactive setup wizard
+│   │   └── delete.ts         # Manual deletion command
+│   ├── cli.ts                # CLI entry point with command routing
 │   └── utils/
 │       └── fs.ts             # Shared filesystem helpers
-├── scripts/
-│   └── delete-staged.sh      # Manual deletion script (NOT an MCP tool)
-├── data/
-│   ├── staged.json           # Staged items (gitignored)
-│   └── history.json          # Deletion history (gitignored)
 ├── config.sample.json        # Example config (tracked)
-├── config.json               # User config (gitignored)
 ├── package.json
 ├── tsconfig.json
 └── README.md
+
+## File Locations (XDG Base Directory)
+
+The package uses XDG Base Directory specification for user files:
+
+- **Config:** `~/.config/macos-storage-mcp/config.json`
+  - User settings and protected paths
+  - Auto-created from config.sample.json on first run
+  
+- **Data:** `~/.local/share/macos-storage-mcp/`
+  - `staged.json` - Items staged for deletion
+  - `history.json` - Deletion history with timestamps
+
+These directories are created automatically on first use.
 ```
 
 ## Error Handling

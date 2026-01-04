@@ -1,19 +1,9 @@
 {
   "protected_paths": [
     "/System",
-    "/Applications",
-    "~/.ssh",
-    "~/.gnupg",
-    "~/Documents",
-    "~/Desktop",
-    "~/.zshrc",
-    "~/.config"
-  ],
-  "scan_locations": [
-    "~",
     "/Library",
-    "/opt",
-    "/usr/local"
+    "~/.ssh",
+    "~/.gnupg"
   ],
   "ignore_patterns": [
     ".git"

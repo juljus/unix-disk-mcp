@@ -1,7 +1,8 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { existsSync, readFileSync, writeFileSync, mkdirSync, statSync } from "fs";
-import { resolve, dirname } from "path";
+import { join, resolve } from "path";
+import { homedir } from "os";
 import { execSync } from "child_process";
 import { Config, expandPath, isProtectedPath } from "../config/index.js";
 
@@ -16,8 +17,11 @@ interface StagedData {
   items: StagedItem[];
 }
 
-const DATA_DIR = resolve(process.cwd(), "data");
-const STAGED_FILE = resolve(DATA_DIR, "staged.json");
+// XDG Base Directory paths
+const XDG_DATA_HOME = process.env.XDG_DATA_HOME || join(homedir(), ".local", "share");
+const DATA_DIR = join(XDG_DATA_HOME, "macos-storage-mcp");
+const STAGED_FILE = join(DATA_DIR, "staged.json");
+const HISTORY_FILE = join(DATA_DIR, "history.json");
 
 function ensureDataDir() {
   if (!existsSync(DATA_DIR)) {
@@ -259,4 +263,16 @@ export function registerStagingTools(server: McpServer, config: Config) {
       };
     }
   });
+}
+
+export function getStagedFilePath(): string {
+  return STAGED_FILE;
+}
+
+export function getHistoryFilePath(): string {
+  return HISTORY_FILE;
+}
+
+export function getDataDir(): string {
+  return DATA_DIR;
 }

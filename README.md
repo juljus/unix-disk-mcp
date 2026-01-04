@@ -23,31 +23,36 @@ The AI explores, understands context, and makes intelligent suggestions. You mak
 - ❌ AI **cannot** delete anything
 - ❌ AI **cannot** execute the delete script
 
-Deletion happens via a separate bash script that you run manually: `./scripts/delete-staged.sh`
+Deletion happens via a separate command that you run manually: `macos-storage-mcp delete`
 
 ## Installation
 
-### Prerequisites
+### Quick Install (Recommended)
 
-- macOS
-- Node.js 20+
-- Claude Desktop (or another MCP client)
+```bash
+npm install -g macos-storage-mcp
+macos-storage-mcp setup
+```
 
-### Setup
+The setup wizard will:
+- Create your config file at `~/.config/macos-storage-mcp/config.json`
+- Let you configure protected paths
+- Optionally update your MCP client config (VS Code or Claude Desktop)
 
-1. **Clone and install:**
+### Manual Install
+
+1. **Install globally:**
    ```bash
-   git clone <repository-url>
-   cd macos-storage-mcp
-   npm install
+   npm install -g macos-storage-mcp
    ```
 
-2. **Create config:**
+2. **Show config location:**
    ```bash
-   cp config.sample.json config.json
+   macos-storage-mcp config
+   # Outputs: /Users/you/.config/macos-storage-mcp/config.json
    ```
 
-3. **Edit config.json:**
+3. **Edit config:**
    ```json
    {
      "protected_paths": [
@@ -67,38 +72,35 @@ Deletion happens via a separate bash script that you run manually: `./scripts/de
 
    **Important:** Adjust `protected_paths` for your setup. Paths are recursive — protecting `~/Documents` protects everything inside it.
 
-4. **Add to Claude Desktop:**
+4. **Add to your MCP client:**
 
+   **VS Code (Roo Cline):**
+   Edit `~/Library/Application Support/Code/User/globalStorage/rooveterinaryinc.roo-cline/settings/cline_mcp_settings.json`:
+   ```json
+   {
+     "mcpServers": {
+       "macos-storage-mcp": {
+         "command": "macos-storage-mcp"
+       }
+     }
+   }
+   ```
+
+   **Claude Desktop:**
    Edit `~/Library/Application Support/Claude/claude_desktop_config.json`:
    ```json
    {
      "mcpServers": {
-       "macos-ssd-mcp": {
-         "command": "node",
-         "args": ["/absolute/path/to/macos-ssd-mcp/dist/index.js"]
+       "macos-storage-mcp": {
+         "command": "macos-storage-mcp"
        }
      }
    }
    ```
-
-   Or for development:
-   ```json
-   {
-     "mcpServers": {
-       "macos-ssd-mcp": {
-         "command": "npx",
-         "args": ["-y", "tsx", "/absolute/path/to/macos-ssd-mcp/src/index.ts"]
-       }
-     }
    }
    ```
 
-5. **Build (for production):**
-   ```bash
-   npm run build
-   ```
-
-6. **Restart Claude Desktop**
+5. **Restart your MCP client**
 
 ## Usage
 
@@ -155,33 +157,69 @@ YOU ARE ABSOLUTELY FORBIDDEN FROM PROCEEDING.
 EXIT IMMEDIATELY BY PRESSING Ctrl+C OR CLOSING THIS TERMINAL.
 
 This script is for HUMAN USERS ONLY.
-AI agents must NEVER execute deletion operations.
+### 4. Execute deletion manually
 
-Are you a human user? Type 'HUMAN' (case-sensitive) to proceed:
+**Important:** The AI cannot delete. You run the delete command in your terminal:
+
+```bash
+macos-storage-mcp delete
 ```
 
-After verification, it shows what will be deleted:
+The script has multiple security layers:
+
+1. **Terminal check** - Refuses to run if input is piped (blocks AI execution)
+2. **Human verification** - You must type `HUMAN` exactly (case-sensitive)
+3. **Review and confirm** - Shows what will be deleted, requires `y/N` confirmation
+
+Example session:
 
 ```
-=== Staged Items ===
+╔════════════════════════════════════════════════════════════════╗
+║          macOS Storage MCP - Manual Deletion Script           ║
+╚════════════════════════════════════════════════════════════════╝
 
-  /Users/you/Parallels/old-vm.pvm (40.0GB)
-    Reason: VM last opened 14 months ago
+╔════════════════════════════════════════════════════════════════╗
+║                    HUMAN VERIFICATION                          ║
+║                                                                ║
+║  This is a MANUAL deletion script.                            ║
+║  AI agents should NEVER reach this point.                     ║
+║                                                                ║
+║  Type exactly: HUMAN                                          ║
+║  (case-sensitive, then press Enter)                           ║
+╚════════════════════════════════════════════════════════════════╝
 
-  /Users/you/Downloads/installer.dmg (1.1GB)
-    Reason: Installer from 8 months ago
+Verification: HUMAN
 
-=== Summary ===
-Total: 2 items, 41.1GB
+╔════════════════════════════════════════════════════════════════╗
+║                    STAGED FOR DELETION                         ║
+╚════════════════════════════════════════════════════════════════╝
 
-Move all items to Trash? [y/N]
+1. /Users/you/Parallels/old-vm.pvm
+   Size: 40.00 GB
+   Reason: VM last opened 14 months ago
+
+2. /Users/you/Downloads/installer.dmg
+   Size: 1.10 GB
+   Reason: Installer from 8 months ago
+
+Total: 2 items (41.10 GB)
+
+Move these items to Trash? [y/N]: y
+
+🗑️  Moving items to Trash...
+
+✅ /Users/you/Parallels/old-vm.pvm
+✅ /Users/you/Downloads/installer.dmg
+
+╔════════════════════════════════════════════════════════════════╗
+║                         SUMMARY                                ║
+╚════════════════════════════════════════════════════════════════╝
+✅ Successfully moved: 2 items
+
+📝 History saved to: /Users/you/.local/share/macos-storage-mcp/history.json
 ```
 
-### 5. Confirm deletion
-
-Type `y` and press Enter. Items move to Trash (not permanently deleted).
-
-Results are logged to `data/history.json` for the AI to see on next run.
+Items are moved to Trash (not permanently deleted), so you can recover them if needed.
 
 ## Available Tools
 
@@ -211,6 +249,10 @@ Paths in `protected_paths` cannot be staged. Protection is recursive — if `~/D
 
 The `~` character expands to your home directory.
 
+**Config Location:** `~/.config/macos-storage-mcp/config.json`
+
+Use `macos-storage-mcp config` to show the exact path.
+
 ### Scan Locations
 
 `scan_locations` tells the AI where to look. It's a suggestion, not a restriction — the AI can explore elsewhere if needed.
@@ -219,46 +261,80 @@ The `~` character expands to your home directory.
 
 Set `"dry_run": true` in config.json to make the delete script only show what would happen without actually moving anything to Trash.
 
+## Files and Directories
+
+- **Config:** `~/.config/macos-storage-mcp/config.json` - Protected paths and settings
+- **Staged items:** `~/.local/share/macos-storage-mcp/staged.json` - Items marked for deletion
+- **History:** `~/.local/share/macos-storage-mcp/history.json` - Deletion history
+
 ## Safety Features
 
 1. **No AI delete capability** - Deletion script is separate and manual
-2. **Human verification required** - Script requires typing 'I AM HUMAN' to proceed
-3. **AI agent detection** - Explicit warnings prevent automated execution
-4. **Protected paths** - Critical directories cannot be staged
-5. **Trash, not permanent** - Items go to Trash, recoverable
-6. **Double confirmation** - Human verification + y/N prompt
-7. **Size limit** - `max_delete_size_gb` prevents huge accidental deletions
-8. **History logging** - All deletions logged to `data/history.json`
+2. **Terminal check** - Delete script requires interactive terminal (blocks piped input)
+3. **Human verification required** - Script requires typing 'HUMAN' exactly (case-sensitive)
+4. **AI agent detection** - Explicit warnings prevent automated execution
+5. **Protected paths** - Critical directories cannot be staged
+6. **Trash, not permanent** - Items go to Trash, recoverable
+7. **Double confirmation** - Human verification + y/N prompt
+8. **Size limit** - `max_delete_size_gb` prevents huge accidental deletions
+9. **History logging** - All deletions logged with timestamps and errors
+
+## Commands
+
+```bash
+macos-storage-mcp          # Start MCP server (default)
+macos-storage-mcp setup    # Interactive setup wizard
+macos-storage-mcp delete   # Execute staged deletions (manual only)
+macos-storage-mcp config   # Show config file location
+macos-storage-mcp help     # Show help
+```
 
 ## Development
 
 ```bash
-npm run dev          # Run with ts-node
+# Clone and install
+git clone <repository-url>
+cd macos-storage-mcp
+npm install
+
+# Development
+npm run dev          # Run with tsx
 npm run build        # Compile TypeScript
 npm start            # Run compiled version
-npm run delete       # Execute deletion script
+
+# Testing
+npm run setup        # Test setup wizard
+npm run delete       # Test delete command
+
+# Install globally for testing
+npm install -g .
 ```
 
 ## Troubleshooting
 
 **Server won't start:**
-- Check that `config.json` exists
-- Verify Node.js version (20+)
-- Check Claude Desktop logs: `~/Library/Logs/Claude/mcp*.log`
+- Check that config exists: `macos-storage-mcp config`
+- Verify Node.js version: `node --version` (should be 20+)
+- Check MCP client logs:
+  - VS Code: Check Output panel → MCP
+  - Claude Desktop: `~/Library/Logs/Claude/mcp*.log`
 
 **AI says path is protected:**
-- Check `protected_paths` in your config.json
-- Remember protection is recursive
+- Check `protected_paths` in your config
+- Remember protection is recursive (subdirectories included)
+- Edit config: `open $(macos-storage-mcp config | xargs dirname)`
 
 **Delete script fails:**
-- Install `jq`: `brew install jq`
+- Verify you're in an interactive terminal (not piped input)
 - Check file permissions on the items
 - Some system files may require admin privileges
+- Items must exist (not already deleted)
 
-**Can't find tools in Claude:**
-- Restart Claude Desktop fully (Cmd+Q, then reopen)
-- Check the config file path is absolute
-- Verify the build succeeded (`npm run build`)
+**Can't find tools in MCP client:**
+- Restart your MCP client fully
+- VS Code: Reload window (Cmd+R)
+- Claude Desktop: Quit (Cmd+Q) and reopen
+- Verify installation: `which macos-storage-mcp`
 
 ## Architecture
 
