@@ -77,7 +77,7 @@ export function registerExplorationTools(server: McpServer, config: Config) {
   // get_disk_usage
   server.tool(
     "get_disk_usage",
-    "Get overview of disk space usage",
+    "Get overview of disk space usage. **Use this first** when exploring disk usage to understand which filesystems/volumes need attention and get a breakdown of home directory space.",
     {},
     async () => {
       try {
@@ -382,6 +382,109 @@ export function registerExplorationTools(server: McpServer, config: Config) {
                 success: false,
                 error: error instanceof Error ? error.message : "Unknown error",
                 code: "GET_ITEM_INFO_FAILED",
+              }),
+            },
+          ],
+        };
+      }
+    }
+  );
+
+  // search_files
+  server.tool(
+    "search_files",
+    "Search for files and directories by name pattern. Use this to find all instances of an app, package, or file type across the system.",
+    {
+      query: z.string().describe("Search query - can be exact name or pattern (e.g., 'Anki', 'node_modules', '*.mp4')"),
+      search_path: z.string().optional().describe("Starting directory (defaults to home directory)"),
+      max_results: z.number().optional().default(50).describe("Maximum number of results to return"),
+    },
+    async ({ query, search_path, max_results }) => {
+      try {
+        const startPath = search_path ? expandPath(search_path) : homedir();
+        let results: string[] = [];
+
+        if (process.platform === 'darwin') {
+          // macOS: Use mdfind (Spotlight) for fast searching
+          try {
+            const mdfindCmd = search_path 
+              ? `mdfind -onlyin "${startPath}" -name "${query}"`
+              : `mdfind -name "${query}"`;
+            
+            const output = execSync(mdfindCmd, { 
+              encoding: "utf-8",
+              maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+            });
+            results = output.trim().split("\n").filter(Boolean);
+          } catch (error) {
+            // Fall back to find if mdfind fails
+            const findCmd = `find "${startPath}" -iname "*${query}*" 2>/dev/null`;
+            const output = execSync(findCmd, { 
+              encoding: "utf-8",
+              maxBuffer: 10 * 1024 * 1024,
+            });
+            results = output.trim().split("\n").filter(Boolean);
+          }
+        } else {
+          // Linux: Use find
+          const findCmd = `find "${startPath}" -iname "*${query}*" 2>/dev/null`;
+          const output = execSync(findCmd, { 
+            encoding: "utf-8",
+            maxBuffer: 10 * 1024 * 1024,
+          });
+          results = output.trim().split("\n").filter(Boolean);
+        }
+
+        // Limit results and get sizes
+        const limitedResults = results.slice(0, max_results);
+        const items = limitedResults.map(path => {
+          try {
+            const stats = statSync(path);
+            return {
+              path,
+              type: stats.isDirectory() ? "directory" : "file",
+              size: stats.size,
+              modified: stats.mtime.toISOString(),
+            };
+          } catch {
+            return {
+              path,
+              type: "unknown",
+              size: 0,
+              error: "Could not read stats",
+            };
+          }
+        });
+
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify(
+                {
+                  success: true,
+                  data: {
+                    query,
+                    total_found: results.length,
+                    returned: items.length,
+                    items,
+                  },
+                },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      } catch (error) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: JSON.stringify({
+                success: false,
+                error: error instanceof Error ? error.message : "Unknown error",
+                code: "SEARCH_FILES_FAILED",
               }),
             },
           ],
