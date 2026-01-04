@@ -147,4 +147,4 @@ unix-disk-mcp help     # Show help
 
 ## License
 
-MIT
+GPL-3.0-or-later
