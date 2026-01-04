@@ -111,10 +111,24 @@ done <<< "$ITEMS"
 
 # Save history
 TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+# Build JSON arrays properly (avoiding empty entries)
+if [ ${#DELETED[@]} -gt 0 ]; then
+    DELETED_JSON=$(printf '%s\n' "${DELETED[@]}" | jq -R . | jq -s .)
+else
+    DELETED_JSON="[]"
+fi
+
+if [ ${#ERRORS[@]} -gt 0 ]; then
+    ERRORS_JSON=$(printf '%s\n' "${ERRORS[@]}" | jq -R . | jq -s .)
+else
+    ERRORS_JSON="[]"
+fi
+
 HISTORY_ENTRY=$(jq -n \
     --arg ts "$TIMESTAMP" \
-    --argjson deleted "$(printf '%s\n' "${DELETED[@]}" | jq -R . | jq -s .)" \
-    --argjson errors "$(printf '%s\n' "${ERRORS[@]}" | jq -R . | jq -s .)" \
+    --argjson deleted "$DELETED_JSON" \
+    --argjson errors "$ERRORS_JSON" \
     '{timestamp: $ts, deleted: $deleted, errors: $errors}')
 
 if [ -f "$HISTORY_FILE" ]; then
