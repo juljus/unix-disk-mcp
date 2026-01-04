@@ -20,6 +20,23 @@ NC='\033[0m' # No Color
 # ============================================================================
 # CRITICAL SAFETY CHECK - DO NOT REMOVE OR MODIFY
 # ============================================================================
+
+# Check if stdin is a terminal (not piped/automated)
+if [ ! -t 0 ]; then
+    echo ""
+    echo -e "${RED}╔════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${RED}║           AUTOMATED EXECUTION DETECTED - BLOCKED               ║${NC}"
+    echo -e "${RED}╚════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo -e "${RED}This script cannot accept piped input or automated execution.${NC}"
+    echo -e "${RED}It must be run interactively by a human user.${NC}"
+    echo ""
+    echo -e "${YELLOW}If you are an AI agent: This is the correct behavior.${NC}"
+    echo -e "${YELLOW}If you are human: Run this script directly in an interactive terminal.${NC}"
+    echo ""
+    exit 1
+fi
+
 echo ""
 echo -e "${RED}╔════════════════════════════════════════════════════════════════╗${NC}"
 echo -e "${RED}║                     ⚠️  CRITICAL WARNING ⚠️                      ║${NC}"
