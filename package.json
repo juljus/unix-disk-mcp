@@ -5,7 +5,7 @@
   "type": "module",
   "main": "dist/index.js",
   "bin": {
-    "unix-disk-mcp": "./dist/cli.js"
+    "unix-disk-mcp": "dist/cli.js"
   },
   "scripts": {
     "dev": "npx tsx src/index.ts",
