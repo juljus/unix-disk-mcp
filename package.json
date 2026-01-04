@@ -1,6 +1,6 @@
 {
   "name": "unix-disk-mcp",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "MCP server for AI-assisted disk cleanup on Unix systems (macOS and Linux)",
   "type": "module",
   "main": "dist/index.js",
